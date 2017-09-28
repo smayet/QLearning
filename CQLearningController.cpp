@@ -30,18 +30,18 @@ CQLearningController::CQLearningController(HWND hwndMain):
 void CQLearningController::InitializeLearningAlgorithm(void)
 {
 	int n=m_numSweepers;
-	
-	// make an n by y by x multi_array
-	// in other words, n x by y tables 
-	// one for each minesweeper
-	
-	Qtables=new double**[n];
+
+	Qtables=new double***[n];
 	for(int i=0;i<n;++i) {
-		Qtables[i]=new double*[_grid_size_y];
+		Qtables[i]=new double**[_grid_size_y];
 		for(int j=0;j<_grid_size_y;++j) {
-			Qtables[i][j]=new double[_grid_size_x];
+			Qtables[i][j]=new double*[_grid_size_x];
+			for(int k=0;k<_grid_size_x;++k) {
+				Qtables[i][j][k]=new double[4];
+			}
 		}
 	}
+	
 }
 /**
  The immediate reward function. This computes a reward upon achieving the goal state of
@@ -141,6 +141,9 @@ CQLearningController::~CQLearningController(void)
 {
 	for(int i=0;i<m_vecSweepers.size();++i) {
 		for(int j=0;j<_grid_size_y;++j) {
+			for(int k=0;k<_grid_size_x;++k) {
+				delete[] Qtables[i][j][k];
+			}
 			delete[] Qtables[i][j];
 		}
 		delete[] Qtables[i];
