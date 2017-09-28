@@ -11,6 +11,7 @@ class CQLearningController :
 private:
 	uint _grid_size_x;
 	uint _grid_size_y;
+	double*** Qtables;
 public:
 	CQLearningController(HWND hwndMain);
 	virtual void InitializeLearningAlgorithm(void);
