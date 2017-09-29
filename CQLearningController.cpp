@@ -13,6 +13,8 @@ Refer to Watkins, Christopher JCH, and Peter Dayan. "Q-learning." Machine learni
 for a detailed discussion on Q Learning
 */
 #include "CQLearningController.h"
+#include <algorithm>
+#include <iostream>
 
 
 CQLearningController::CQLearningController(HWND hwndMain):
@@ -38,6 +40,9 @@ void CQLearningController::InitializeLearningAlgorithm(void)
 			Qtables[i][j]=new double*[_grid_size_x];
 			for(int k=0;k<_grid_size_x;++k) {
 				Qtables[i][j][k]=new double[4];
+				for(int l=0;l<4;++l) {
+					Qtables[i][j][k][l]=0.0;
+				}
 			}
 		}
 	}
@@ -95,7 +100,9 @@ bool CQLearningController::Update(void)
 		printf("All dead ... skipping to next iteration\n");
 		m_iTicks = CParams::iNumTicks;
 	}
-
+	
+	int* actions=new int[CParams::iNumSweepers];
+	
 	//iterating over the minesweepers
 	for (uint sw = 0; sw < CParams::iNumSweepers; ++sw){
 		if (m_vecSweepers[sw]->isDead()) continue;
@@ -109,15 +116,28 @@ bool CQLearningController::Update(void)
 		//1:::Observe the current state:
 		
 		CDiscMinesweeper mine=m_vecSweepers[sw];
-		SVector2D<int> facing=mine.m_vLookAt;
+		SVector2D<int> state=mine.Position();
+		int x=state.x;
+		int y=state.y;
 		
 		//2:::Select action with highest historic return:
 		
-		// this is going to require checking where we can go
-		// and looking at the reward function to see what we'll get 
+		int action=std::distance(Qtables[sw][y][x],std::max_element(Qtables[sw][y][x],Qtables[sw][y][x]+4));
 		
-		//TODO
 		//now call the parents update, so all the sweepers fulfill their chosen action
+		switch(action) {
+		case(0):
+			m_vecSweepers[sw].setRotation(NORTH);
+		case(1):
+			m_vecSweepers[sw].setRotation(EAST);
+		case(2):
+			m_vecSweepers[sw].setRotation(SOUTH);
+		case(3):
+			m_vecSweepers[sw].setRotation(WEST);
+		default:
+			std::cout<<"There has been an error."<<std::endl;
+		}
+		actions[sw]=action;
 	}
 	
 	CDiscController::Update(); //call the parent's class update. Do not delete this.
@@ -125,14 +145,27 @@ bool CQLearningController::Update(void)
 	//iterating over the minesweepers 
 	for (uint sw = 0; sw < CParams::iNumSweepers; ++sw){
 		if (m_vecSweepers[sw]->isDead()) continue;
+		
 		//TODO:compute your indexes.. it may also be necessary to keep track of the previous state
-		
-		// THE NEXT STATE THAT WE VISIT, ACCORDING TO CODE ABOVE 
-		
+		double*** oldQ=Qtables;
+		int x_old=m_vecSweepers[sw].PrevPosition().x;
+		int y_old=m_vecSweepers[sw].PrevPosition().y;
+
 		//3:::Observe new state:
-		//TODO
+		int x_new=m_vecSweepers[sw].Position().x;
+		int y_new=m_vecSweepers[sw].Position().y;
+	
 		//4:::Update _Q_s_a accordingly:	// UPDATE ACCORDING TO REWARD FUNCTION 
-		//TODO
+		gamma=0.8;
+		
+		double maxA=0.0;
+		for(int aPrime=0;aPrime<4;++aPrime) {
+			double newVal=Qtables[sw][y_new][x_new][aPrime];
+			if(newVal>maxA) maxA=newVal;	
+		}	
+		int a=actions[sw];			
+		Qtables[sw][y_old][x_old][a]=R(x_old,y_old,sw)+gamma*maxA;
+		
 	}
 	return true;
 }
