@@ -11,7 +11,7 @@ class CQLearningController :
 private:
 	uint _grid_size_x;
 	uint _grid_size_y;
-	double*** Qtables;
+	double**** Qtables;
 	double gamma;
 public:
 	CQLearningController(HWND hwndMain);
