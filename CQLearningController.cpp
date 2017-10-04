@@ -15,6 +15,8 @@ for a detailed discussion on Q Learning
 #include "CQLearningController.h"
 #include <algorithm>
 #include <iostream>
+#include <fstream>
+#include <string>
 
 
 CQLearningController::CQLearningController(HWND hwndMain):
@@ -66,18 +68,29 @@ double CQLearningController::R(uint x,uint y, uint sweeper_no){
 	// check all m_vecObjects for whether any of them getPosition() gives you the same as (x,y) 
 	// you can getType() on a collision object 
 	
+	//ofstream reward;
+	//reward.open("reward.txt");
+	//reward << "Allocating reward" << endl;
+
 	if(m_vecSweepers[sweeper_no]->MinesGathered()==m_NumMines) 
 		return 500;
 	
 	for(int i=0;i<m_vecObjects.size();++i) {
 		if((m_vecObjects[i]->getPosition().x==x)&&(m_vecObjects[i]->getPosition().y==y)) {
 			
-			if(m_vecObjects[i]->getType()==CCollisionObject::ObjectType::SuperMine) 
+			if (m_vecObjects[i]->getType() == CCollisionObject::ObjectType::Mine) {
+				//reward << "100 rewarded" << endl;
+				return 100;
+			}
+
+			else if (m_vecObjects[i]->getType() == CCollisionObject::ObjectType::SuperMine) {
+				//reward << "-100 rewarded" << endl;
 				return -100;
-				
-			else if(m_vecObjects[i]->getType()==CCollisionObject::ObjectType::Rock) 
+			}
+			else if (m_vecObjects[i]->getType() == CCollisionObject::ObjectType::Rock) {
+				//reward << "-50 rewarded" << endl;
 				return -50;
-				
+			}
 		}
 	}
 	
@@ -88,7 +101,11 @@ The update method. Main loop body of our Q Learning implementation
 See: Watkins, Christopher JCH, and Peter Dayan. "Q-learning." Machine learning 8. 3-4 (1992): 279-292
 */
 bool CQLearningController::Update(void)
-{
+{	
+	
+	ofstream log;
+	log.open("log.txt");
+	log << "NEW ITERATION" << endl;
 	//m_vecSweepers is the array of minesweepers
 	//everything you need will be m_[something] ;)
 	uint cDead = std::count_if(m_vecSweepers.begin(),
@@ -124,31 +141,34 @@ bool CQLearningController::Update(void)
 		int y=state.y;
 		
 		//2:::Select action with highest historic return:
-		
-		cout << Qtables[sw][y][x][0];
-		
-	//	int action = 0;
+				
+		int action = 0;
 		//double test = 12;
 		//double* max = &test;
-	/*	double* max = std::max_element(Qtables[sw][y][x], Qtables[sw][y][x] + 4);
+		double* max = std::max_element(Qtables[sw][y][x], Qtables[sw][y][x] + 4);
+		log << "MAX "<<*max << endl;
 		for (int a = 0; a < 4; ++a) {
 			//cout << Qtables[sw][y][x][a];
 			if (Qtables[sw][y][x][a] == *max) action = a;
-		} */
-		int action=std::distance(Qtables[sw][y][x],std::max_element(Qtables[sw][y][x],Qtables[sw][y][x]+4));
+		} 
+		//int action=std::distance(Qtables[sw][y][x],std::max_element(Qtables[sw][y][x],Qtables[sw][y][x]+4));
 		
 		//now call the parents update, so all the sweepers fulfill their chosen action
+		action = 2;
+		log <<"ARGMAX "<< action << endl;
 		switch(action) {
 		case(0):
 			m_vecSweepers[sw]->setRotation(NORTH);
+			log << "NORTH" << endl;
 		case(1):
 			m_vecSweepers[sw]->setRotation(EAST);
+			log << "EAST" << endl;
 		case(2):
 			m_vecSweepers[sw]->setRotation(SOUTH);
+			log << "SOUTH" << endl;
 		case(3):
 			m_vecSweepers[sw]->setRotation(WEST);
-		default:
-			std::cout<<"There has been an error."<<std::endl;
+			log << "WEST" << endl;
 		}
 		actions[sw]=action;
 	}
@@ -176,8 +196,11 @@ bool CQLearningController::Update(void)
 			double newVal=Qtables[sw][y_new][x_new][aPrime];
 			if(newVal>maxA) maxA=newVal;	
 		}	
-		int a=actions[sw];			
+		int a=actions[sw];	
+		log << "MAX A " << maxA << endl;
+		log << "REWARD " << R(x_old, y_old, sw) << endl;
 		Qtables[sw][y_old][x_old][a]=R(x_old,y_old,sw)+gamma*maxA;
+		log << "Q "<<Qtables[sw][y_old][x_old][a] <<endl;
 		
 	}
 	return true;
